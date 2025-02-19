@@ -237,10 +237,11 @@
 .playerAdd{
     position: absolute;
     right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 0;
+    /* top: 50%;
+    transform: translateY(-50%); */
     background: none;
-    margin-right: 2rem;
+    margin: 1rem;
     border: 1px solid white;
     border-radius: 50%;
     padding: 1.5rem;
@@ -328,7 +329,6 @@
 @media screen and (max-width: 1600px) {
     .main{
         overflow: auto;
-        padding: 1rem;
         height: auto;
     }
     
@@ -372,7 +372,6 @@
     @media screen and (max-width: 1000px) {
         .playerSection{
             flex-wrap: wrap;
-            
         }
 
         .playerDisplay{
@@ -383,14 +382,22 @@
 
 
     @media screen and (max-width: 500px) {
-        .intro{
+        .intro {
             font-size: 1rem;
         }
 
-        .userHeader{
+        .userHeader {
             font-size: 1rem;
         }
-        
+
+        .main{
+            overflow: auto;
+            padding: 1rem 1rem 1rem 1rem;
+        }
+
+        .pageContainer{
+            flex-direction: column-reverse;
+        }
     }
 
     /* .popular{
