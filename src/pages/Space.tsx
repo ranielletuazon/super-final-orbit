@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth, db } from "../components/firebase/firebase";
-import { getDoc, doc, collection, getDocs} from "firebase/firestore";
+import { getDoc, doc, collection, getDocs, Timestamp} from "firebase/firestore";
 import { toast } from "sonner";
 import styles from './css/Space.module.css';
 import { set } from "firebase/database";
@@ -23,6 +23,7 @@ export default function Space({ user }: { user: any }) {
         email?: string;
         emailConsent?: boolean;
     }
+
     const [currentUser, setCurrentUser] = useState<UserData | null>(null);
     const [suggested, setSuggested] = useState<string[]>([]);
     const [playerData, setPlayerData] = useState<any[]>([]);
@@ -52,7 +53,7 @@ export default function Space({ user }: { user: any }) {
         const fetchUserData = async () => {
             if (!auth.currentUser) return; // Ensure user is authenticated
 
-            const userDocRef = doc(db, "users", auth.currentUser.uid);
+            const userDocRef = doc(db, "user", auth.currentUser.uid);
             const docSnap = await getDoc(userDocRef);
 
             if (docSnap.exists()) {
@@ -91,7 +92,7 @@ export default function Space({ user }: { user: any }) {
             }
     
             // Fetching the user documents from Firestore
-            const playersSnap = await getDocs(collection(db, "users"));
+            const playersSnap = await getDocs(collection(db, "user"));
             const playersList = playersSnap.docs.map((doc) => ({
               id: doc.id,
               ...doc.data(),
@@ -111,7 +112,7 @@ export default function Space({ user }: { user: any }) {
     
             // Fetching player data for the selected random player IDs
             const playersData = await Promise.all(randomFive.map(async (uid) => {
-              const playerDocRef = doc(db, "users", uid);
+              const playerDocRef = doc(db, "user", uid);
               const playerSnap = await getDoc(playerDocRef);
     
               if (playerSnap.exists()) {
@@ -136,8 +137,13 @@ export default function Space({ user }: { user: any }) {
         };
     
         fetchData();
-        console.log(playerData);
-      }, []);
+    }, []);
+
+    console.log(playerData);
+
+    
+
+
     
     return(
         <>
@@ -198,9 +204,8 @@ export default function Space({ user }: { user: any }) {
                                 { playerData && playerData.map((item, index) => (
                                     <div key={index} className={styles.playerDisplay} style={{backgroundImage: `url(${item.profileImage})`}}>
                                         <div className={styles.playerDescription}>
-                                            <div className={styles.playerUsername}><b>{item.username}</b></div>
-                                            <div className={styles.playerGender}>{item.gender}</div>
-                                            <div className={styles.playerGames}>{item.games}</div>
+                                            <div className={styles.playerUsername}><b>{item.username}, 25 {item.gender && item.gender.toLowerCase() === "male" ? (<i className="fa-solid fa-mars" style={{color: "#2cc6ff", marginLeft: "0.5rem"}}></i>) : (<i className="fa-solid fa-venus" style={{color: "hsl(0, 100%, 70%)", marginLeft: "0.5rem"}}></i>)}</b></div>
+                                            <button className={styles.playerAdd}><i className="fa-solid fa-user-plus"></i></button>
                                         </div>
                                     </div>
                                 ))}

@@ -45,7 +45,7 @@ function App() {
   // Fetch user data from Firestore
   const fetchUserData = async (uid: string) => {
     try {
-      const userDocRef = doc(db, "users", uid);
+      const userDocRef = doc(db, "user", uid);
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {

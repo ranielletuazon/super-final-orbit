@@ -33,7 +33,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   const checkUserConsent = async (currentUser: User) => {
     try {
-      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDocRef = doc(db, 'user', currentUser.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {

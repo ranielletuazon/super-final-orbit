@@ -11,8 +11,9 @@
 }
 
 .logo{
+    margin: 0.5rem;
     width: 2em;
-    padding: .5rem 0;
+    margin-bottom: 2rem;
 }
 
 .menubar{
@@ -21,7 +22,6 @@
     width: 100%;
     height: 100%;
     color: white;
-    gap: 1rem;
     justify-content: space-between;
     align-items: center;
 }
@@ -36,10 +36,24 @@
 .menus{
     display: flex;
     flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+    gap: 2rem;
+}
+
+.menuButton{
+
+    border: none;
+    background: none;
+
+    i{
+        font-size: 1.5rem;
+        color: white;
+    }
 }
 
 .profileButton{
-    margin: .5rem;
+    margin-bottom: .5rem;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -48,9 +62,8 @@
     background: none;
 
     img{
-        width: 2.5rem !important;
-        height: 2.5rem !important;
-        box-shadow: 0 0 2px #2cc6ff, 0 0 10px #2cc6ff;
+        width: 2rem !important;
+        height: 2rem !important;
         object-fit: cover;
         background-color: hsl(0, 0%, 15%);
         border-radius: 50%;
@@ -85,18 +98,27 @@
         align-items: center;
         border: none;
         background-color: hsl(0, 0%, 5%);
+
     }
 
     .menus{
         flex-direction: row;
+        gap: 1rem;
     }
 
     .menubar{
         flex-direction: row;
+
+        width: 100%;
     }
 
     .logo{
         width: 2em;
+        margin: 0 1rem 0 0;
+    }
+
+    .profileButton{
+        margin: 0.5rem;
     }
 }
 

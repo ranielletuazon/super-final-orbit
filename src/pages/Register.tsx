@@ -61,7 +61,7 @@ export default function Register(){
                     const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredentials.user;
     
-                    await setDoc(doc(db, 'users', user.uid), {
+                    await setDoc(doc(db, 'user', user.uid), {
                         username,
                         id: user.uid,
                     });
@@ -86,6 +86,12 @@ export default function Register(){
                             reject('An unexpected error occurred');
                     }
                 }
+            }).finally(() => {
+                setUsername('');
+                setPassword('');
+                setConfirmPassword('');
+                setEmail('');
+                navigate('/login');
             }),
             {
                 loading: 'Creating account...',

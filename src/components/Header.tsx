@@ -16,7 +16,7 @@ export default function Header({ logout, user }: { logout: () => void, user: any
         const profileImage = async () => {
             if (user) {
                 try {
-                    const userDocRef = doc(db, "users", user.uid);
+                    const userDocRef = doc(db, "user", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
 
                     if (userDocSnap.exists()) {
@@ -46,13 +46,13 @@ export default function Header({ logout, user }: { logout: () => void, user: any
                 <img src={newlogo} alt="Orbit Logo" className={styles.logo}/>
                 <div className={styles.menubar}>
                     <div className={styles.menus}>
-                        <button className="fa-solid fa-house" style={{color: "white", fontSize: "1.5rem", background:"none", border:"none", padding:"1rem"}}></button>
-                        <button className="fa-solid fa-gamepad" style={{color: "white", fontSize: "1.5rem", background:"none", border:"none", padding:"1rem"}}></button>
-                        <button className="fa-solid fa-rocket" style={{color: "white", fontSize: "1.5rem", background:"none", border:"none", padding:"1rem"}}></button>
+                        <button className={styles.menuButton}><i className="fa-solid fa-house" ></i></button>
+                        <button className={styles.menuButton}><i className="fa-solid fa-gamepad" ></i></button>
+                        <button className={styles.menuButton}><i className="fa-solid fa-rocket" ></i></button>
                         <button onClick={logout}>Logout</button>
                     </div>
                     <div className={styles.menus}>
-                        <button className="fa-solid fa-gear" style={{color: "white", fontSize: "1.5rem", background:"none", border:"none", padding:"1rem"}}></button>
+                        <button className={styles.menuButton}><i className="fa-solid fa-gear"></i></button>
                         <button className={styles.profileButton} >
                             {profileImageIcon && <img src={profileImageIcon} alt="Profile" className={styles.profileImage}/>}
                         </button>

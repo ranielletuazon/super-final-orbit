@@ -31,7 +31,7 @@ export default function Login({user}: {user:any}){
                 const user = userCredential.user;
     
                 // Fetch user data from Firestore to check emailConsent
-                const userDocRef = doc(db, 'users', user.uid);
+                const userDocRef = doc(db, 'user', user.uid);
                 const docSnap = await getDoc(userDocRef);
     
                 if (docSnap.exists()) {

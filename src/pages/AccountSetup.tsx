@@ -324,7 +324,7 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
             if (username === "" || validUsername.test(username) === false) {
                 toast.error("Invalid username. Please try again.");
             } else {
-                const userDocRef = doc(db, "users", user.uid);
+                const userDocRef = doc(db, "user", user.uid);
                 await updateDoc(userDocRef, {
                     username: username,
                 });
@@ -344,7 +344,7 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
     }
 
     const handleFinish = () => {
-        const userDocRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, 'user', user.uid);
         setFinish(true);
     
         toast.promise(
