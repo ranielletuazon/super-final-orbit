@@ -7,71 +7,108 @@ import { auth, db } from '../components/firebase/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword } from "firebase/auth";
 
-export default function Login({user}: {user:any}){
+export default function Login(){
 
     const navigate = useNavigate();
 
+    // if (auth.currentUser) {
+    //     navigate('/space');
+    // }
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); 
 
-
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
     
         setLoading((prev) => !prev);
         console.log('Button pressed');
     
-        // Set initial message for loading state
         let loginMessage = 'Logging in...';
     
         toast.promise(
-            signInWithEmailAndPassword(auth, email, password)
-            .then( async (userCredential) => {
-                const user = userCredential.user;
-    
-                // Fetch user data from Firestore to check emailConsent
-                const userDocRef = doc(db, 'user', user.uid);
-                const docSnap = await getDoc(userDocRef);
-    
-                if (docSnap.exists()) {
-                    const userData = docSnap.data();
-                    if (!userData?.emailConsent) {
-                        // If emailConsent is not true, show warning and navigate to /setup
-                        loginMessage = 'Logged in successfully!';
-                        setTimeout(() => navigate('/setup'), 1000);
-                        setTimeout(() => toast(`Welcome, ${userData?.username}`), 3000);
-                    } else {
-                        loginMessage = 'Logged in successfully!';
-                        setTimeout(() => navigate('/space'), 1000);
-                        setTimeout(() => toast(`Welcome, ${userData?.username}`), 3000);
+            (async () => {
+                try {
+                    // Attempt to sign in
+                    const userCredential = await signInWithEmailAndPassword(
+                        auth,
+                        email,
+                        password
+                    );
+                    const user = userCredential.user;
+                    console.log("Hello", user);
+
+                    // Check if user is banned
+                    const avoidDocRef = doc(db, "users", user.uid);
+                    const bannedSnap = await getDoc(avoidDocRef);
+                    if (bannedSnap.exists()) {
+                        await auth.signOut();
+                        setLoading(false);
+                        throw new Error(
+                            "Your account is disabled. Contact the admin for more information."
+                        );
                     }
-                } else {
-                    toast.error('User data not found!');
-                    loginMessage = 'An unexpected error occurred.';
+
+                    // Fetch user data
+                    const userDocRef = doc(db, "user", user.uid);
+                    const docSnap = await getDoc(userDocRef);
+
+                    if (!docSnap.exists()) {
+                        setLoading(false);
+                        throw new Error(
+                            "User data not found! Account is probably deleted, contact support."
+                        );
+                    }
+
+                    // Handle successful login
+                    const userData = docSnap.data();
+                    const loginMessage = "Logged in successfully!";
+
+                    if (!userData?.emailConsent) {
+                        setTimeout(() => navigate("/setup"), 1000);
+                    } else {
+                        setTimeout(() => navigate("/space"), 1000);
+                    }
+
+                    setTimeout(
+                        () => toast(`Welcome, ${userData?.username}`),
+                        3000
+                    );
+                    return loginMessage;
+                } catch (error: any) {
+                    setLoading(false);
+
+                    // Make sure all error conditions throw errors for toast.promise to catch
+                    const errorCode: string = error.code;
+                    let errorMessage;
+
+                    if (errorCode === "auth/too-many-requests") {
+                        errorMessage =
+                            "Too many login attempts. Please try again later.";
+                    } else if (errorCode === "auth/invalid-credential") {
+                        errorMessage =
+                            "Invalid credentials. Incorrect email or password.";
+                    } else if (
+                        errorCode ===
+                        "auth/the-service-is-currently-unavailable."
+                    ) {
+                        errorMessage =
+                            "The service is currently unavailable. Please try again later.";
+                    } else if (error.message) {
+                        // Use the error message if it exists (from our custom errors)
+                        errorMessage = error.message;
+                    } else {
+                        errorMessage = "An unexpected error occurred.";
+                    }
+
+                    throw new Error(errorMessage);
                 }
-    
-                return loginMessage;
-            }).catch((error) => {
-                const errorCode = error.code;
-    
-                if (errorCode === "auth/too-many-requests") {
-                    setLoading(false);
-                    loginMessage = "Too many login attempts. Please try again later.";
-                } else if (errorCode === "auth/invalid-credential") {
-                    setLoading(false);
-                    loginMessage = "Invalid credentials. Incorrect email or password.";
-                } else {
-                    setLoading(false);
-                    loginMessage = "An unexpected error occurred.";
-                }
-    
-                return Promise.reject(loginMessage);
-            }),
+            })(),
             {
-                loading: 'Logging in...',
-                success: (loginMessage) => loginMessage, // Use the message from the success handler
-                error: (loginMessage) => loginMessage, // Use the error message from the catch block
+                loading: "Logging in...",
+                success: (message) => message,
+                error: (error) => error.message || error,
             }
         );
     };

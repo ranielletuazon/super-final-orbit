@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { auth, db, storage } from "../components/firebase/firebase";
 import { doc, setDoc, getDocs, collection, updateDoc } from "firebase/firestore";
-import { ref, getDownloadURL, uploadBytes } from "firebase/storage";
+import { ref as storageRef, getDownloadURL, uploadBytes } from "firebase/storage";
 import styles from "../pages/css/AccountSetup.module.css";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,7 +12,8 @@ import Button from "@mui/material/Button";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import plus from "../assets/plus.svg"
-import { set } from "firebase/database";
+import { set, ref, getDatabase, onDisconnect, serverTimestamp, update} from "firebase/database";
+import { Update } from "@mui/icons-material";
 
 interface AccountSetupProps {
     user: any;
@@ -144,11 +145,11 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
         };
         reader.readAsDataURL(file);
     
-        const storageRef = ref(storage, `profileImages/${user.uid}`); 
+        const storageUrl = storageRef(storage, `profileImages/${user.uid}`); 
     
         try {    
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
+            await uploadBytes(storageUrl, file);
+            const downloadURL = await getDownloadURL(storageUrl);
             setImageUpload(downloadURL); 
     
         } catch (error) {
@@ -167,26 +168,26 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
     };
 
     // Logout debugger button
-    const handleLogout = async () => {
-        await toast.promise(
-            new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    auth.signOut()
-                        .then(() => {
-                            resolve("");
-                        })
-                        .catch((err) => {
-                            reject(err);
-                        });
-                }, 1000);
-            }),
-            {
-                loading: "Logging out...",
-                success: "Successfully logged out!",
-                error: "An error occurred while logging out. Please try again.",
-            }
-        );
-    };
+    // const handleLogout = async () => {
+    //     await toast.promise(
+    //         new Promise((resolve, reject) => {
+    //             setTimeout(() => {
+    //                 auth.signOut()
+    //                     .then(() => {
+    //                         resolve("");
+    //                     })
+    //                     .catch((err) => {
+    //                         reject(err);
+    //                     });
+    //             }, 1000);
+    //         }),
+    //         {
+    //             loading: "Logging out...",
+    //             success: "Successfully logged out!",
+    //             error: "An error occurred while logging out. Please try again.",
+    //         }
+    //     );
+    // };
 
     useEffect(() => {
         const fetchGames = async (): Promise<void> => {
@@ -343,37 +344,51 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
         setBirthdate(e.target.value);
     }
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
         const userDocRef = doc(db, 'user', user.uid);
+        const realtimeDb = getDatabase();
+        const rdbUserRef = ref(realtimeDb, `users/${user.uid}`);
         setFinish(true);
     
-        toast.promise(
-            setDoc(userDocRef, {
-                emailConsent: true,
-                birthdate,
-                gender,
-                selectedGames,
-                userPlatforms: selectedPlatforms,
-                userGenres: selectedGenres,
-                profileImage: imageUpload,
-            }, { merge: true })
-            .then(() => {
-                setTimeout(() => {
-                    navigate('/space');
-                    setFinish(false);
-                }, 1000)
-            })
-            .catch((error) => {
-                console.error('Error updating user data:', error);
-                throw error; 
-            }),
-            {
-                loading: 'Saving data...',
-                success: 'Account setup successfully!',
-                error: 'An error occurred. Please try again!',
-            }
-        );
+        try {
+            toast.promise(
+                Promise.all([
+                    setDoc(userDocRef, {
+                        emailConsent: true,
+                        birthdate,
+                        gender,
+                        selectedGames,
+                        userPlatforms: selectedPlatforms,
+                        userGenres: selectedGenres,
+                        profileImage: imageUpload,
+                    }, { merge: true }),
+                    update(rdbUserRef, {
+                        profileImage: imageUpload,
+                    })
+                ]),
+                {
+                    loading: 'Saving data...',
+                    success: 'Account setup successfully!',
+                    error: 'An error occurred. Please try again!',
+                }
+            );
+    
+            // Navigate after saving is successful
+            await Promise.all([
+                setDoc(userDocRef, { /* Firestore data */ }, { merge: true }),
+                update(rdbUserRef, { /* Realtime DB data */ })
+            ]);
+    
+            setTimeout(() => {
+                navigate('/space');
+                setFinish(false);
+            }, 1000);
+        } catch (error) {
+            console.error('Error updating user data:', error);
+            setFinish(false); // Reset finish state if there's an error
+        }
     };
+    
     
     
 
@@ -646,12 +661,6 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
                             />
                         </div>
                     </div>
-                    <button
-                        className={styles.logoutButton}
-                        onClick={handleLogout}
-                    >
-                        Logout
-                    </button>
                 </div>
             </div>
         </>

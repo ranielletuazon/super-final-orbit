@@ -310,6 +310,16 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.statusDisplay{
+    position: absolute;
+    background-color: hsl(120, 100%, 50%);
+    border: 1px solid grey;
+    top: 0;
+    right: 0;
+    margin: 1rem;
+    padding: .5rem;
+    border-radius: 50%;
+}
 
 
 @media screen and (max-width: 1600px) {
@@ -376,7 +386,7 @@
 
         .playerDisplay{
             width: 100%;
-            height: 30em;
+            height: 20em;
         }
     }
 
@@ -403,5 +413,23 @@
     /* .popular{
         width: 80%;
     } */
+}
+
+@media screen and (max-width: 1440px) {
+    .playerDescription{
+        height: 50%;
+    }
+
+    @media screen and (max-width: 1024px) {
+
+        .playerAdd{
+            padding: 1rem;
+
+            i{
+                font-size: .8rem;
+            }
+        }
+        
+    }
 }
 

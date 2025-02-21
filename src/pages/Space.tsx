@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { auth, db } from "../components/firebase/firebase";
+import { auth, db, realtimeDb } from "../components/firebase/firebase";
 import { getDoc, doc, collection, getDocs, setDoc } from "firebase/firestore";
+import { ref, onValue, getDatabase, get } from "firebase/database";
 import { toast } from "sonner";
 import styles from './css/Space.module.css';
 import { set } from "firebase/database";
@@ -28,8 +29,6 @@ export default function Space({ user }: { user: any }) {
     const [suggested, setSuggested] = useState<string[]>([]);
     const [playerData, setPlayerData] = useState<any[]>([]);
     const [completeLoad, setCompleteLoad] = useState(true);
-
-    const test: boolean = false;
 
     const [isLoading, setIsLoading] = useState(false);
 
@@ -64,24 +63,37 @@ export default function Space({ user }: { user: any }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userDocRef = doc(db, "userCache", user.uid); // Use the user's UID
-                const userCacheSnap = await getDoc(userDocRef);
-    
-                // Check if data was fetched today
                 const today = new Date().toLocaleDateString(); // Format as "MM/DD/YYYY"
+    
+                // Check Firestore cache first
+                const userDocRef = doc(db, "userCache", user.uid); // Reference to cached user data
+                const userCacheSnap = await getDoc(userDocRef);
     
                 if (userCacheSnap.exists()) {
                     const userCacheData = userCacheSnap.data();
                     if (userCacheData.lastFetched === today) {
-                        // Use cached data from Firestore
+                        // Use cached data
                         if (userCacheData.playerData) {
                             setPlayerData(userCacheData.playerData);
-                            console.log("Using cached player data from Firestore.");
                             return;
                         }
                     }
                 }
     
+                // Fetch data from Realtime Database #Uncomment this to use RTDB
+                // const rtdb = getDatabase();
+                // const usersRef = ref(rtdb, "users"); // Reference to the "users" node in Realtime Database
+                // const snapshot = await get(usersRef);
+    
+                // if (!snapshot.exists()) {
+                //     return;
+                // }
+    
+                // const playersList = Object.keys(snapshot.val()).map((key) => ({
+                //     id: key, // Use the key as the user ID
+                //     ...snapshot.val()[key], // Spread user data
+                // }));
+
                 // Fetching the user documents from Firestore
                 const playersSnap = await getDocs(collection(db, "user"));
                 const playersList = playersSnap.docs.map((doc) => ({
@@ -89,37 +101,23 @@ export default function Space({ user }: { user: any }) {
                     ...doc.data(),
                 }));
     
-                // Selecting 5 random players
-                const randomFive: string[] = [];
+                // Select 5 random players
+                const randomFive: any = [];
                 while (randomFive.length < 5 && playersList.length > randomFive.length) {
                     const randomPlayer = playersList[Math.floor(Math.random() * playersList.length)];
                     if (randomPlayer.id !== user.uid && !randomFive.includes(randomPlayer.id)) {
                         randomFive.push(randomPlayer.id);
                     }
                 }
-    
                 setSuggested(randomFive);
-                console.log("Suggested Players:", randomFive);
     
                 // Fetching player data for the selected random player IDs
-                const playersData = await Promise.all(randomFive.map(async (uid) => {
-                    const playerDocRef = doc(db, "user", uid);
-                    const playerSnap = await getDoc(playerDocRef);
-    
-                    if (playerSnap.exists()) {
-                        return playerSnap.data();
-                    } else {
-                        return null;
-                    }
-                }));
-    
-                // Filter out any null values if a player doesn't have data
-                const filteredPlayersData = playersData.filter((player): player is any => player !== null);
+                const playersData = randomFive.map((id: any) => playersList.find((user) => user.id === id));
+                const filteredPlayersData = playersData.filter((player: any) => player !== undefined);
     
                 setPlayerData(filteredPlayersData);
-                console.log("Player Data:", filteredPlayersData);
     
-                // Store the player data and the current date in Firestore
+                // Store the player data and the current date in Firestore cache
                 await setDoc(userDocRef, {
                     lastFetched: today,
                     playerData: filteredPlayersData,
@@ -128,10 +126,9 @@ export default function Space({ user }: { user: any }) {
                 console.error("Error fetching players:", error);
             }
         };
+    
         fetchData();
     }, []);
-
-    console.log(playerData);
 
     return(
         <>
@@ -191,18 +188,13 @@ export default function Space({ user }: { user: any }) {
                             <div className={styles.playerSection}> {/* Maximum of 5 */}
                                 { playerData && playerData.map((item, index) => (
                                     <div key={index} className={styles.playerDisplay} style={{backgroundImage: `url(${item.profileImage})`}}>
+                                        <div className={styles.statusDisplay} style={{display: item.status === "online" ? "block" : "none"}}></div>
                                         <div className={styles.playerDescription}>
                                             <div className={styles.playerUsername}><b>{item.username}, {item.birthdate && Math.floor((Date.now() - new Date(item.birthdate).getTime()) / (1000 * 60 * 60 * 24 * 365.25))} {item.gender && item.gender.toLowerCase() === "male" ? (<i className="fa-solid fa-mars" style={{color: "#2cc6ff", marginLeft: "0.5rem"}}></i>) : (<i className="fa-solid fa-venus" style={{color: "hsl(0, 100%, 70%)", marginLeft: "0.5rem"}}></i>)}</b></div>
                                             <button className={styles.playerAdd}><i className="fa-solid fa-user-plus"></i></button>
                                         </div>
                                     </div>
                                 ))}
-                                {/* <div className={styles.playerDisplay} style={{backgroundImage: `url(${player})`}}>
-                                    <div className={styles.playerDescription}>
-                                        <div className={styles.playerUsername}><b>Bunja</b> 25</div>
-                                        <div className={styles.playerGames}>Valorant</div>
-                                    </div>
-                                </div> */}
                             </div>
                         </div>
                     </div>

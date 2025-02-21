@@ -6,8 +6,8 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { fetchSignInMethodsForEmail } from 'firebase/auth';
 import { auth, db } from '../components/firebase/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { getDatabase, ref, set } from "firebase/database";
 import { toast } from "sonner";
-import { set } from "firebase/database";
 
 export default function Register(){
 
@@ -65,7 +65,18 @@ export default function Register(){
                         username,
                         id: user.uid,
                     });
-    
+
+                    // Realtime Database Setup
+                    const realtimeDb = getDatabase();
+                    const rdbUserRef = ref(realtimeDb, `users/${user.uid}`)
+
+                    await set(rdbUserRef, {
+                        id: user.uid,
+                        username: username,
+                        email: email,
+                        status: "online",
+                    });
+                    
                     resolve();
                 } catch (err) {
                     const error = err as { code?: string };
@@ -91,13 +102,12 @@ export default function Register(){
                 setPassword('');
                 setConfirmPassword('');
                 setEmail('');
-                navigate('/login');
             }),
             {
                 loading: 'Creating account...',
                 success: () => {
                     setLoading(false);
-                    setTimeout(() => navigate('/login'), 1000);
+                    setTimeout(() => navigate('/setup'), 1000);
                     return 'Account created successfully';
                 },
                 error: (errorMessage) => {
@@ -132,7 +142,7 @@ export default function Register(){
                             <label className={styles.emailInput} style={{ color: passError ? '#e36f74' : 'inherit' }}>Confirm Password {passError && ` - ${passError}`}</label>
                             <input type="password" className={styles.emailBox} value={confirmPassword} required placeholder="Re-enter password" onChange={(e) => setConfirmPassword(e.target.value)}/>
 
-                            <button className={styles.submit} disabled={loading}>Login</button>
+                            <button className={styles.submit} disabled={loading}>Create Account</button>
                         </form>
                         <Link to="/login" className={styles.login}>
                             Already have an account? <span style={{ color: '#2cc6ff' }}>LOGIN</span>

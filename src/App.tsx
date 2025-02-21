@@ -5,12 +5,14 @@ import { auth, db } from './components/firebase/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { User } from "firebase/auth"; // Import Firebase User type
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { getDatabase, ref, set, onDisconnect, serverTimestamp, update } from 'firebase/database';
 
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Register from './pages/Register';
 import Space from './pages/Space';
 import AccountSetup from './pages/AccountSetup';
+import Settings from './pages/Settings';
 
 import './App.css';
 
@@ -22,6 +24,7 @@ function App() {
     username: string;
     id: string;
     email?: string;
+    profileImage: string;
   }
 
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
@@ -31,16 +34,8 @@ function App() {
     const unsubscribe = auth.onAuthStateChanged((userLoggedIn) => {
       setUser(userLoggedIn);
     });
-
     return () => unsubscribe();
   }, []);
-
-  // Fetch user data once user is available
-  useEffect(() => {
-    if (user?.uid) {
-      fetchUserData(user.uid);
-    }
-  }, [user]);
 
   // Fetch user data from Firestore
   const fetchUserData = async (uid: string) => {
@@ -58,15 +53,55 @@ function App() {
       toast.error("Failed to fetch user data. Please try again.");
     }
   };
+
+  // Fetch user data once user is available
+  useEffect(() => {
+    // Fix this soon
+    if (user?.uid) {
+      fetchUserData(user.uid);
+    }
+  }, [user]);
+
+  // This is for setting the user's status in Realtime Database
+  useEffect(() => {
+    if (!user || !currentUser) {
+      return;
+    } else {
+      // Set the user's status in Realtime Database
+      try {
+        const username = currentUser?.username ?? "Unknown"; // Fallback to "Unknown" if undefined
+        const email = user.email ?? "N/A"; // Fallback to "N/A" if undefined
+        const id = user.uid;
+          
+        const db = getDatabase();
+        const rdbUserRef = ref(db, `users/${id}`);
+        const onDisconnectRef = onDisconnect(rdbUserRef);
+
+        update(rdbUserRef, {
+          status: "online",
+          profileImage: currentUser?.profileImage,
+        });
+
+        onDisconnectRef.update({
+          status: "offline",
+        });
+      } catch (e) {
+        console.error("Failed to write data to Realtime Database.");
+        console.log(e);
+      }
+    }
+  }, [user, currentUser]);
+  
   return (
     <>
       <BrowserRouter>
         <Routes>
-          <Route path='/' element={<Home />} />
-          <Route path='/login' element={<Login user={user} />} />
+          <Route path='/' element={<Home user={user} />} />
+          <Route path='/login' element={<Login/>} />
           <Route path='/register' element={<Register />} />
           <Route path='/space' element={<ProtectedRoute><Space user={user} /></ProtectedRoute>} />
           <Route path='/setup' element={<ProtectedRoute><AccountSetup user={user} currentUser={currentUser} /></ProtectedRoute>} />
+          <Route path='/settings' element={<ProtectedRoute><Settings user={user} currentUser={currentUser} /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
       <Toaster
