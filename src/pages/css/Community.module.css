@@ -1,0 +1,74 @@
+
+.container{
+    background-color: hsl(0, 0%, 15%);
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.page{
+    max-width: 2000px;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.pageContainer {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+
+.content{
+    width: 100%;
+    overflow: auto;
+    padding: 1rem;
+}
+
+.friendsHeader ,.pendingFriends, .requestsHeader{
+    width: 100%;
+    font-size: 2rem;
+    color: hsl(0, 0%, 50%);
+    padding: 1rem;
+    border-bottom: 1px solid hsl(0, 0%, 50%);
+}
+
+.friendCardbox ,.pendingCardbox, .requestCardbox{
+    width: 100%;
+    max-height: 40em; /* Change to max height */
+    overflow: auto;
+    display: flex;
+    padding: 1rem;
+}
+
+.friendContent, .pendingContent, .requestContent{
+    width: 100%;
+    color: hsl(0, 0%, 50%);
+}
+
+@media screen and (min-height: 1080px) {
+    .pageContainer {
+        height: 1080px;
+        width: 100%;
+        display: flex;
+    }
+}
+
+@media screen and (max-width: 500px) {
+    .pageContainer{
+        flex-direction: column-reverse;
+    }
+
+    .content{
+        height: 100%;
+        overflow: auto;
+    }
+}
+
