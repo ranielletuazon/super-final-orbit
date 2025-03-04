@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth, db, realtimeDb } from "../components/firebase/firebase";
-import { getDoc, doc, collection, getDocs, setDoc, query, orderBy, limit, updateDoc, arrayUnion } from "firebase/firestore";
+import { getDoc, doc, collection, getDocs, setDoc, query, orderBy, limit, updateDoc, arrayUnion, arrayRemove, onSnapshot } from "firebase/firestore";
 import { ref, onValue, getDatabase, get } from "firebase/database";
+import ClipLoader from "react-spinners/ClipLoader";
 import { toast } from "sonner";
 import styles from './css/Space.module.css';
 import { set } from "firebase/database";
-
 import Header from '../components/Header';
+
+const override: CSSProperties = {
+    display: "block",
+    margin: "auto",
+    borderColor: "#2cc6ff",
+};
 
 export default function Space({ user }: { user: any }) {
 
@@ -16,43 +22,60 @@ export default function Space({ user }: { user: any }) {
         id: string,
         email?: string;
         emailConsent?: boolean;
+        friendRequests?: string[];
+        friends?: string[];
+        pendingRequests?: string[];
     }
 
     const [currentUser, setCurrentUser] = useState<UserData | null>(null);
     const [suggested, setSuggested] = useState<string[]>([]);
     const [playerData, setPlayerData] = useState<any[]>([]);
-    const [completeLoad, setCompleteLoad] = useState(true);
     const [topGames, setTopGames] = useState<any[]>([]);
     const [sidebar, setSidebar] = useState('');
-
     const [isLoading, setIsLoading] = useState(false);
+    const [userStatus, setUserStatus] = useState<boolean>(false);
 
     const navigate = useNavigate();
 
     // Check if this code still important?
     useEffect(() => {
-        const fetchUserData = async () => {
-            if (!auth.currentUser) return; // Ensure user is authenticated
-
-            const userDocRef = doc(db, "user", auth.currentUser.uid);
-            const docSnap = await getDoc(userDocRef);
-
+        if (!auth.currentUser) return; // Ensure user is authenticated
+    
+        const userDocRef = doc(db, "user", auth.currentUser.uid);
+    
+        const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 const userData = docSnap.data() as UserData;
                 setCurrentUser(userData);
-
-                // Check if the emailConsent field exists
+    
+                // Check if emailConsent exists
                 if (userData.emailConsent === undefined || userData.emailConsent === false) {
-                    // Redirect to /setup if emailConsent does not exist or is false
                     navigate("/setup");
                 }
             } else {
                 console.log("No such document!");
             }
-        };
-        fetchUserData();
-        setCompleteLoad(false);
+        });
+    
+        return () => unsubscribe(); // Cleanup listener on unmount
     }, [navigate]);
+
+    // re render on firestore data change
+    useEffect(() => {
+        if (!auth.currentUser) return;
+    
+        const userDocRef = doc(db, "user", auth.currentUser.uid);
+    
+        // 🟢 Listen for real-time changes
+        const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                setCurrentUser(docSnap.data() as UserData);
+            }
+        });
+    
+        // Cleanup listener when component unmounts
+        return () => unsubscribe();
+    }, []);
 
     // Get random 5
     useEffect(() => {
@@ -95,16 +118,33 @@ export default function Space({ user }: { user: any }) {
                     id: doc.id,
                     ...doc.data(),
                 }));
-    
-                // Select 5 random players
-                const randomFive: any = [];
-                while (randomFive.length < 5 && playersList.length > randomFive.length) {
-                    const randomPlayer = playersList[Math.floor(Math.random() * playersList.length)];
-                    if (randomPlayer.id !== user.uid && !randomFive.includes(randomPlayer.id)) {
+
+                // Select 5 random players, also now excludes friends
+                const randomFive: string[] = [];
+                const friends: string[] = currentUser?.friends || [];
+
+                // Add a failsafe code soon for reaching multiple players
+                while (
+                    randomFive.length < 5 &&
+                    playersList.length > randomFive.length
+                ) {
+                    const randomPlayer =
+                        playersList[
+                            Math.floor(Math.random() * playersList.length)
+                        ];
+
+                    // Ensure randomPlayer.id exists, is not the current user, not already suggested, and not in friends list
+                    if (
+                        randomPlayer.id !== user.uid &&
+                        !randomFive.some((id) => id === randomPlayer.id) &&
+                        !friends.includes(randomPlayer.id)
+                    ) {
                         randomFive.push(randomPlayer.id);
                     }
                 }
+
                 setSuggested(randomFive);
+
     
                 // Fetching player data for the selected random player IDs
                 const playersData = randomFive.map((id: any) => playersList.find((user) => user.id === id));
@@ -117,6 +157,7 @@ export default function Space({ user }: { user: any }) {
                     lastFetched: today,
                     playerData: filteredPlayersData,
                 });
+
             } catch (error) {
                 console.error("Error fetching players:", error);
             }
@@ -147,6 +188,10 @@ export default function Space({ user }: { user: any }) {
             } catch (error) {
                 console.error("Error fetching top games:", error);
                 throw error;
+            } finally {
+                setTimeout(() => {
+                    setIsLoading(true);
+                }, );
             }
         };
     
@@ -154,7 +199,7 @@ export default function Space({ user }: { user: any }) {
         fetchTopGames();
     }, []);
 
-    // Make this as a component
+    // Make this as a component, might be reusable soon
     const handleFriendRequest = async (requestId: any) => {
         try {
             if (!requestId) {
@@ -165,8 +210,31 @@ export default function Space({ user }: { user: any }) {
             }
 
             const userDocRef = doc(db, "user", requestId.id);
+            const userDoc = await getDoc(userDocRef);
+
+            const currentUserDocRef = doc(db, "user", user.uid);
+
+            const userData = userDoc.data();
+            const friendsList = userData?.friends || []; 
+
+            // Check if already friends
+            if (friendsList.includes(user.uid)) {
+                toast.info(`You are already friends with ${requestId.username}.`);
+                return;
+            }
+
+            // Check if already in pending requests
+            if (currentUser?.pendingRequests?.includes(requestId.id)) {
+                toast.info(`You have already sent a friend request to ${requestId.username}.`);
+                return;
+            }
+
             await updateDoc(userDocRef, {
                 friendRequests: arrayUnion(user.uid)
+            });
+
+            await updateDoc(currentUserDocRef, {
+                pendingRequests: arrayUnion(requestId.id)
             });
             toast("Friend request sent to " + requestId.username);
         } catch (error) {
@@ -174,8 +242,43 @@ export default function Space({ user }: { user: any }) {
         }
     }
 
-    const handleSidebar = () => {
+    // Handle accepting a friend request with an existing friend request in the random players
+    const handleAcceptRequest = async (requestId: any) => {
+        try {
+            const otherUserDocRef = doc(db, 'user', requestId.id);
 
+            if (currentUser?.pendingRequests?.includes(requestId.id)) {
+                toast.info(`You have already sent a friend request to ${requestId.username}.`);
+                return;
+            }
+
+            if (currentUser?.friends?.includes(requestId.id)) {
+                toast.info(`You are already friends with ${requestId.username}.`);
+                return;
+            }
+
+            // Update the friendRequests array in the friend's document
+            await updateDoc(otherUserDocRef, {
+                friends: arrayUnion(user.uid),
+                pendingRequests: arrayRemove(user.uid),
+                // To make sure remove the users from the friendRequests array too
+                friendRequests: arrayRemove(user.uid)
+            })
+
+            const currentUserDocRef = doc(db, 'user', user.uid);
+
+            // Update the friends/friendRequests array in the current user's document
+            await updateDoc(currentUserDocRef, {
+                friends: arrayUnion(requestId.id),
+                friendRequests: arrayRemove(requestId.id),
+                pendingRequests: arrayRemove(requestId.id)
+            })
+
+        } catch (e: any) {
+            const errorCode: string = e.code;
+            console.log(e, "Error");
+            toast.error(errorCode);
+        }
     }
 
     return (
@@ -202,10 +305,15 @@ export default function Space({ user }: { user: any }) {
                                     <button
                                         onClick={() => navigate('/community')}
                                         className="fa-solid fa-user-group"
-                                    ></button>
+                                        style={{position: "relative"}}
+                                    >
+                                        <div className={styles.newNotif} style={{ display: currentUser?.friendRequests && currentUser.friendRequests.length > 0 ? "block" : "none" }}></div>
+                                    </button>
                                 </div>
                             </div>
-                            <div className={styles.gameSection}>
+                            {isLoading ? (
+                                <>
+                                    <div className={styles.gameSection}>
                                 <div className={styles.popular}>
                                     <img
                                         src={topGames[0]?.gameTopImage}
@@ -374,20 +482,51 @@ export default function Space({ user }: { user: any }) {
                                                         )}
                                                     </b>
                                                 </div>
-                                                <button
-                                                    className={styles.playerAdd}
-                                                    onClick={() =>
-                                                        handleFriendRequest(
-                                                            item
-                                                        )
+                                                    <button
+                                                    className={
+                                                        currentUser?.friendRequests?.includes(item.id)
+                                                            ? styles.acceptRequest
+                                                            : currentUser?.pendingRequests?.includes(item.id)
+                                                            ? styles.pendingRequest
+                                                            : currentUser?.friends?.includes(item.id)
+                                                            ? styles.playerFriended
+                                                            : styles.playerAdd
+                                                    }
+                                                    onClick={
+                                                        currentUser?.friendRequests?.includes(item.id)
+                                                            ? () => handleAcceptRequest(item)
+                                                            : currentUser?.friends?.includes(item.id)
+                                                            ? () => toast("friend")
+                                                            : () => handleFriendRequest(item)
                                                     }
                                                 >
-                                                    <i className="fa-solid fa-user-plus"></i>
+                                                    {currentUser?.friendRequests?.includes(item.id) ? (
+                                                        <i className="fa-solid fa-user-check"></i>
+                                                    ) : currentUser?.pendingRequests?.includes(item.id) ? (
+                                                        <i className="fa-solid fa-hourglass-half"></i> // Pending request icon
+                                                    ) : currentUser?.friends?.includes(item.id) ? (
+                                                        <i className="fa-solid fa-user"></i>
+                                                    ) : (
+                                                        <i className="fa-solid fa-user-plus"></i>
+                                                    )}
                                                 </button>
                                             </div>
                                         </div>
                                     ))}
                             </div>
+                                </>
+                            ) : (
+                                <>
+                                    <ClipLoader
+                                        color={"#2cc6ff"}
+                                        loading={!isLoading}
+                                        cssOverride={override}
+                                        size={150}
+                                        aria-label="Loading Spinner"
+                                        data-testid="loader"
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

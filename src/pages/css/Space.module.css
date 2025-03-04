@@ -235,7 +235,7 @@
     border: none;
 }
 
-.playerAdd{
+.playerAdd, .acceptRequest, .pendingRequest, .playerFriended{
     position: absolute;
     right: 0;
     bottom: 0;
@@ -259,6 +259,18 @@
         font-size: 1rem;
         position: absolute;
     }
+}
+
+.acceptRequest{
+    background-color: #2cc6ff;
+    color: white;
+    border: none;
+}
+
+.pendingRequest{
+    background-color: #808080;
+    color: white;
+    border: none;
 }
 
 .userHeader{
@@ -368,6 +380,16 @@
     }
 }
 
+.newNotif{
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: .8rem;
+    height: .8rem;
+    background-color: hsl(0, 100%, 70%);
+    border-radius: 50%;
+}
+
 
 @media screen and (max-width: 1600px) {
     .main{
@@ -469,7 +491,7 @@
 
     @media screen and (max-width: 1024px) {
 
-        .playerAdd{
+        .playerAdd, .acceptRequest, .pendingRequest, .playerFriended{
             padding: 1rem;
 
             i{

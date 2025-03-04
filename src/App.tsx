@@ -80,6 +80,9 @@ function App() {
 
         update(rdbUserRef, {
           status: "online",
+          username: username,
+          email: email,
+          id: id,
           profileImage: currentUser?.profileImage,
         });
 
