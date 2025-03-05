@@ -20,8 +20,8 @@ export default function Space({ user }: { user: any }) {
     interface UserData{
         username: string,
         id: string,
-        email?: string;
-        emailConsent?: boolean;
+        email: string;
+        emailConsent: boolean;
         friendRequests?: string[];
         friends?: string[];
         pendingRequests?: string[];
@@ -66,7 +66,6 @@ export default function Space({ user }: { user: any }) {
     
         const userDocRef = doc(db, "user", auth.currentUser.uid);
     
-        // 🟢 Listen for real-time changes
         const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
             if (docSnap.exists()) {
                 setCurrentUser(docSnap.data() as UserData);
@@ -119,30 +118,23 @@ export default function Space({ user }: { user: any }) {
                     ...doc.data(),
                 }));
 
-                // Select 5 random players, also now excludes friends
+                // Select 5 random players, excluding friends
                 const randomFive: string[] = [];
                 const friends: string[] = currentUser?.friends || [];
 
-                // Add a failsafe code soon for reaching multiple players
                 while (
                     randomFive.length < 5 &&
                     playersList.length > randomFive.length
                 ) {
-                    const randomPlayer =
-                        playersList[
-                            Math.floor(Math.random() * playersList.length)
-                        ];
+                    const randomPlayer = playersList[Math.floor(Math.random() * playersList.length)];
 
-                    // Ensure randomPlayer.id exists, is not the current user, not already suggested, and not in friends list
-                    if (
-                        randomPlayer.id !== user.uid &&
-                        !randomFive.some((id) => id === randomPlayer.id) &&
-                        !friends.includes(randomPlayer.id)
-                    ) {
+                    // Ensure the player is not a friend
+                    if (!friends.includes(randomPlayer.id) && randomPlayer.id !== user.uid && !randomFive.includes(randomPlayer.id)) {
                         randomFive.push(randomPlayer.id);
                     }
                 }
 
+                // Set the suggested players
                 setSuggested(randomFive);
 
     
@@ -199,6 +191,8 @@ export default function Space({ user }: { user: any }) {
         fetchTopGames();
     }, []);
 
+    // useEffect(() => {console.log(suggested)}, [suggested]);
+
     // Make this as a component, might be reusable soon
     const handleFriendRequest = async (requestId: any) => {
         try {
@@ -236,7 +230,6 @@ export default function Space({ user }: { user: any }) {
             await updateDoc(currentUserDocRef, {
                 pendingRequests: arrayUnion(requestId.id)
             });
-            toast("Friend request sent to " + requestId.username);
         } catch (error) {
             toast.error("Error sending friend request:");
         }

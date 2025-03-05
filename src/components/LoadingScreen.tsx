@@ -3,10 +3,8 @@ import './loading.css';
 
 export default function LoadingScreen() {
     return(
-        <>
-            <div className="container">
-                <img src={orbit} alt="Orbit" className="orbit"/>
-            </div>
-        </>
+        <div className="container">
+            <img src={orbit} alt="Orbit" className="orbit"/>
+        </div>
     );
 }

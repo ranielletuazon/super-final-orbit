@@ -133,7 +133,7 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
         if (!file) return;
     
         const fileSize = file.size / (1024 * 1024); 
-        if (fileSize > 2) {
+        if (fileSize > 2.1) {
             toast.error("File size must be less than 2MB. Please try again.");
             return;
         }
@@ -166,28 +166,6 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
     const handleBack = () => {
         setActiveStep((prevActiveStep) => prevActiveStep - 1);
     };
-
-    // Logout debugger button
-    // const handleLogout = async () => {
-    //     await toast.promise(
-    //         new Promise((resolve, reject) => {
-    //             setTimeout(() => {
-    //                 auth.signOut()
-    //                     .then(() => {
-    //                         resolve("");
-    //                     })
-    //                     .catch((err) => {
-    //                         reject(err);
-    //                     });
-    //             }, 1000);
-    //         }),
-    //         {
-    //             loading: "Logging out...",
-    //             success: "Successfully logged out!",
-    //             error: "An error occurred while logging out. Please try again.",
-    //         }
-    //     );
-    // };
 
     useEffect(() => {
         const fetchGames = async (): Promise<void> => {
@@ -248,32 +226,16 @@ export default function AccountSetup({ user, currentUser }: AccountSetupProps) {
         // Survey Monitor
         switch (activeStep) {
             case 0:
-                if (agree === true) {
-                    setAccess(true);
-                } else {
-                    setAccess(false);
-                }
+                setAccess(agree)
                 break;
             case 1:
-                if (selectedGames.length > 0) {
-                    setAccess(true);
-                } else {
-                    setAccess(false);
-                }
+                setAccess(selectedGames.length > 0);
                 break;
             case 2:
-                if (selectedGenres.length > 0) {
-                    setAccess(true);
-                } else {
-                    setAccess(false);
-                }
+                setAccess(selectedGenres.length > 0);
                 break;
             case 3:
-                if (selectedPlatforms.length > 0) {
-                    setAccess(true);
-                } else {
-                    setAccess(false);
-                }
+                setAccess(selectedPlatforms.length > 0);
                 break;
         }
     });

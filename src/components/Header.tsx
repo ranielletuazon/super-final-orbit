@@ -14,7 +14,6 @@ export default function Header({ user }: { user: any }){
     const navigate = useNavigate();
 
     const [loading, setIsLoading] = useState(false);
-    // States
     const [profileImageIcon, setProfileImageIcon] = useState<string | null>(null);
       
 

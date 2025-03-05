@@ -14,6 +14,7 @@ import Space from './pages/Space';
 import AccountSetup from './pages/AccountSetup';
 import Settings from './pages/Settings';
 import Community from './pages/Community';
+import Profile from './pages/Profile';
 
 import './App.css';
 
@@ -106,6 +107,7 @@ function App() {
           <Route path='/space' element={<ProtectedRoute><Space user={user} /></ProtectedRoute>} />
           <Route path='/setup' element={<ProtectedRoute><AccountSetup user={user} currentUser={currentUser} /></ProtectedRoute>} />
           <Route path='/settings' element={<ProtectedRoute><Settings user={user} currentUser={currentUser} /></ProtectedRoute>} />
+          <Route path='/profile' element={<ProtectedRoute><Profile user={user} currentUser={currentUser} /></ProtectedRoute>} />
           <Route path='/community' element={<ProtectedRoute><Community user={user} /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>

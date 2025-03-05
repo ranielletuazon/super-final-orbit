@@ -73,21 +73,6 @@
     }
 
 }
-/* 
-@media screen and (max-width: 1471px) {
-    *{
-        background-color: #1c2120;
-    }
-
-    .content{
-        padding-top: 5em;
-        padding-left: 2em;
-    }
-
-    .contentHead, .contentBody{
-        width: 100%;
-    }
-} */
 
 @media screen and (max-width: 1000px) {
     .content{

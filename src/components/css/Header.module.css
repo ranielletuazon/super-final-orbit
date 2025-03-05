@@ -34,13 +34,6 @@
     border-radius: 1rem;
 }
 
-/* i{
-        font-size: 2rem;
-        padding: 1rem;
-        cursor: pointer;
-        text-align: center;    
-} */
-
 .menus{
     display: flex;
     flex-direction: column;
